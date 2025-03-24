@@ -1,21 +1,28 @@
 import 'package:flutter/material.dart';
-import 'BottomNavBar.dart';
+import 'widgets/BottomNavBar.dart';
+import 'screens/screens.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
+
+  runApp(MyApp(isFirstLaunch: isFirstLaunch));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isFirstLaunch;
+
+  const MyApp({super.key, required this.isFirstLaunch});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Healthy Habits',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
-      ),
-      home: const MainScreen(),
+      theme: ThemeData(primarySwatch: Colors.green),
+      home: isFirstLaunch ? const WelcomeScreen() : const MainScreen(),
     );
   }
 }
@@ -32,7 +39,9 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
-    const HabitsScreen(),
+    const CalendarScreen(),
+    const FoodIntakeScreen(),
+    const ChatScreen(),
     const ProfileScreen(),
   ];
 
@@ -40,7 +49,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],
-      bottomNavigationBar: BottomNavBar(
+      bottomNavigationBar: CustomBottomNav(
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
@@ -49,33 +58,5 @@ class _MainScreenState extends State<MainScreen> {
         },
       ),
     );
-  }
-}
-
-// Временные экраны
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Главная'));
-  }
-}
-
-class HabitsScreen extends StatelessWidget {
-  const HabitsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Привычки'));
-  }
-}
-
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Профиль'));
   }
 }
