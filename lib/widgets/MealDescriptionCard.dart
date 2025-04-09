@@ -15,7 +15,7 @@ class MealDescriptionCard extends StatelessWidget {
     return Container(
       width: 350,
       constraints: const BoxConstraints(
-        maxHeight: 200,
+        maxHeight: 300,
       ),
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.symmetric(vertical: 12),

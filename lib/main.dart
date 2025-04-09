@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'widgets/BottomNavBar.dart';
 import 'screens/screens.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   final isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
+  await initializeDateFormatting('ru_RU', null); // или 'en_US', если нужно
 
   runApp(MyApp(isFirstLaunch: isFirstLaunch));
 }
@@ -39,7 +42,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
-    const CalendarScreen(),
+    const MealPlanScreen(),
     const FoodIntakeScreen(),
     const ChatScreen(),
     const ProfileScreen(),

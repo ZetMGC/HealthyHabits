@@ -24,7 +24,8 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
   late Animation<double> _expandAnimation;
   bool _isExpanded = false;
 
-  late TextEditingController _titleController;
+  final List<String> mealTypes = ["Завтрак", "Обед", "Ужин", "Перекус"];
+  late String _selectedMealType;
   DateTime? _selectedDate;
 
   @override
@@ -43,10 +44,10 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
     );
 
     if (_isExpanded) {
-      _animationController.value = 1.0; // Открываем сразу
+      _animationController.value = 1.0;
     }
 
-    _titleController = TextEditingController(text: widget.initialTitle);
+    _selectedMealType = widget.initialTitle;
     _selectedDate = widget.initialDate;
   }
 
@@ -80,7 +81,6 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
   @override
   void dispose() {
     _animationController.dispose();
-    _titleController.dispose();
     super.dispose();
   }
 
@@ -113,7 +113,7 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
                 ),
               ),
               title: Text(
-                _titleController.text,
+                _selectedMealType,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               subtitle: Text(
@@ -122,14 +122,13 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
                     : "Выберите дату",
               ),
               trailing: RotationTransition(
-                turns: Tween(begin: 0.0, end: 0.5)
-                    .animate(_animationController),
+                turns: Tween(begin: 0.0, end: 0.5).animate(_animationController),
                 child: SvgPicture.asset(
                   'assets/icons/downarrow.svg',
                   width: 14,
                   height: 14,
-                  colorFilter: const ColorFilter.mode(
-                      Colors.black54, BlendMode.srcIn),
+                  colorFilter:
+                  const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
                 ),
               ),
             ),
@@ -156,34 +155,41 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
               ),
               child: Column(
                 children: [
-                  _styledTextField("Название приема пищи", _titleController),
+                  _mealTypeDropdown(),
                   const SizedBox(height: 10),
                   _datePickerButton(),
                 ],
               ),
-
             ),
-
           ),
         ),
       ],
     );
   }
 
-  Widget _styledTextField(String hint, TextEditingController controller) {
-    return TextField(
-      controller: controller,
+  Widget _mealTypeDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedMealType,
       decoration: InputDecoration(
-        hintText: hint,
+        hintText: "Выберите тип приема пищи",
         filled: true,
         fillColor: Colors.grey.shade100,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
-        contentPadding:
-        const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       ),
+      items: mealTypes
+          .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+          .toList(),
+      onChanged: (value) {
+        if (value != null) {
+          setState(() {
+            _selectedMealType = value;
+          });
+        }
+      },
     );
   }
 
