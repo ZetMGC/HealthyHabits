@@ -7,11 +7,15 @@ class DropdownCardDatepicker extends StatefulWidget {
   final DateTime? initialDate;
   final bool initiallyExpanded;
 
+  /// Новый параметр: вызывается при изменении типа приёма пищи или даты
+  final void Function(String type, DateTime date)? onChanged;
+
   const DropdownCardDatepicker({
     super.key,
     this.initialTitle = "Название приема пищи",
     this.initialDate,
     this.initiallyExpanded = false,
+    this.onChanged,
   });
 
   @override
@@ -74,6 +78,9 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
+        if (widget.onChanged != null) {
+          widget.onChanged!(_selectedMealType, _selectedDate!);
+        }
       });
     }
   }
@@ -178,7 +185,8 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        contentPadding:
+        const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       ),
       items: mealTypes
           .map((type) => DropdownMenuItem(value: type, child: Text(type)))
@@ -187,6 +195,9 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
         if (value != null) {
           setState(() {
             _selectedMealType = value;
+            if (widget.onChanged != null && _selectedDate != null) {
+              widget.onChanged!(_selectedMealType, _selectedDate!);
+            }
           });
         }
       },

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_debugger/shared_preferences_debugger.dart';
+
 import 'welcome_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -7,11 +9,11 @@ class ProfileScreen extends StatelessWidget {
 
   Future<void> _resetApp(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); // Очистка всех данных
+    await prefs.clear();
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-          (route) => false, // Убираем все предыдущие экраны из истории
+          (route) => false,
     );
   }
 
@@ -19,11 +21,23 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Настройки")),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () => _resetApp(context),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-          child: const Text("Сбросить приложение", style: TextStyle(color: Colors.white)),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            ElevatedButton(
+              onPressed: () => _resetApp(context),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text(
+                "Сбросить приложение",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Expanded(
+              child: SharedPreferencesDebugPage(), // Отладчик прямо на экране
+            ),
+          ],
         ),
       ),
     );

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:healthyhabits/models/meal.dart';
+import 'package:healthyhabits/models/dish.dart';
+import 'package:healthyhabits/models/meal_entry.dart';
+import 'package:healthyhabits/data/dishes_database.dart';
+import 'package:healthyhabits/data/meal_entries_database.dart';
 import '../widgets/DropdownDatepicker.dart';
 import '../widgets/DropdownCardRating.dart';
 import '../widgets/AppBar.dart';
 import '../widgets/MealDescriptionCard.dart';
 import '../widgets/StoreSelectionCard.dart';
-import '../widgets/DropdownMealType.dart';
-import '../data/MockData.dart';
+import '../widgets/DropdownDishSelector.dart';
+import 'package:healthyhabits/models/store.dart';
 
 class FoodIntakeScreen extends StatefulWidget {
   const FoodIntakeScreen({super.key});
@@ -16,12 +19,31 @@ class FoodIntakeScreen extends StatefulWidget {
 }
 
 class _FoodIntakeScreenState extends State<FoodIntakeScreen> {
-  Meal? selectedMeal;
+  Dish? selectedDish;
+  DateTime selectedDate = DateTime.now();
+  String selectedMealType = "Завтрак";
+  int selectedRating = 0;
+  String comment = '';
+  Store? selectedStore;
 
-  @override
-  void initState() {
-    super.initState();
-    selectedMeal = mockMeals.first; // по умолчанию первое блюдо
+  void _addMealEntry() async {
+    if (selectedDish == null) return;
+
+    final newEntry = MealEntry(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      date: selectedDate,
+      mealType: selectedMealType,
+      dishId: selectedDish!.id,
+      place: comment,
+      store: selectedStore,
+      rating: selectedRating,
+    );
+
+    await MealEntriesDatabase.saveEntry(newEntry);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Прием пищи добавлен')),
+    );
   }
 
   @override
@@ -43,29 +65,42 @@ class _FoodIntakeScreenState extends State<FoodIntakeScreen> {
               const SizedBox(height: 35),
               Center(
                 child: DropdownCardDatepicker(
-                  initialTitle: "Завтрак",
-                  initialDate: DateTime(2024, 3, 29),
+                  initialTitle: selectedMealType,
+                  initialDate: selectedDate,
+                  onChanged: (type, date) {
+                    setState(() {
+                      selectedMealType = type;
+                      selectedDate = date;
+                    });
+                  },
                 ),
               ),
               const SizedBox(height: 12),
-              MealDropdownCard(
-                onMealSelected: (Meal meal) {
+              DishDropdownCard(
+                onMealSelected: (Dish dish) {
                   setState(() {
-                    selectedMeal = meal;
+                    selectedDish = dish;
                   });
                 },
               ),
-              if (selectedMeal != null)
+              if (selectedDish != null)
                 MealDescriptionCard(
-                  description: selectedMeal!.description,
-                  ingredients: selectedMeal!.ingredients,
+                  description: selectedDish!.description,
+                  ingredients: selectedDish!.ingredients,
                 ),
+              if(selectedDish == null)
+                const SizedBox(height: 12),
               Center(
-                child: DropdownCardRating(),
+                child: DropdownCardRating(
+                  onRatingChanged: (val) => setState(() => selectedRating = val),
+                  onCommentChanged: (val) => comment = val,
+                ),
               ),
               const SizedBox(height: 12),
               Center(
-                child: StoreSelectorCard(),
+                child: StoreSelectorCard(
+                  onStoreChanged: (store) => setState(() => selectedStore = store),
+                ),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
@@ -76,9 +111,7 @@ class _FoodIntakeScreenState extends State<FoodIntakeScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: () {
-                  print("Добавлено блюдо: ${selectedMeal?.title}");
-                },
+                onPressed: _addMealEntry,
                 child: const Text(
                   "Добавить",
                   style: TextStyle(

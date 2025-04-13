@@ -1,44 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-
-class Store {
-  final String name;
-  final String address;
-  final String type;
-
-  Store({required this.name, required this.address, required this.type});
-
-  Map<String, String> toJson() => {
-    'name': name,
-    'address': address,
-    'type': type,
-  };
-
-  static Store fromJson(Map<String, dynamic> json) => Store(
-    name: json['name'],
-    address: json['address'],
-    type: json['type'],
-  );
-
-  @override
-  String toString() => name;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-          other is Store &&
-              runtimeType == other.runtimeType &&
-              name == other.name &&
-              address == other.address &&
-              type == other.type;
-
-  @override
-  int get hashCode => name.hashCode ^ address.hashCode ^ type.hashCode;
-}
+import 'package:healthyhabits/models/store.dart';
 
 class StoreSelectorCard extends StatefulWidget {
-  const StoreSelectorCard({super.key});
+  final Function(Store?) onStoreChanged;
+
+  const StoreSelectorCard({super.key, required this.onStoreChanged});
 
   @override
   State<StoreSelectorCard> createState() => _StoreSelectorCardState();
@@ -61,6 +29,7 @@ class _StoreSelectorCardState extends State<StoreSelectorCard> {
       _stores = storesJson.map((s) => Store.fromJson(json.decode(s))).toList();
       if (_stores.isNotEmpty) {
         _selectedStore ??= _stores.first;
+        widget.onStoreChanged(_selectedStore);
       }
     });
   }
@@ -120,7 +89,10 @@ class _StoreSelectorCardState extends State<StoreSelectorCard> {
                       address = store.address;
                       type = store.type;
                     });
-                    setState(() => _selectedStore = store);
+                    setState(() {
+                      _selectedStore = store;
+                      widget.onStoreChanged(_selectedStore);
+                    });
                   }
                 },
               ),
@@ -180,6 +152,7 @@ class _StoreSelectorCardState extends State<StoreSelectorCard> {
                             _stores.remove(storeToEdit);
                             _selectedStore =
                             _stores.isNotEmpty ? _stores.first : null;
+                            widget.onStoreChanged(_selectedStore);
                           });
                           _saveStores();
                           Navigator.of(context).pop();
@@ -209,6 +182,7 @@ class _StoreSelectorCardState extends State<StoreSelectorCard> {
                               _stores.add(newStore);
                             }
                             _selectedStore = newStore;
+                            widget.onStoreChanged(_selectedStore);
                           });
                           _saveStores();
                           Navigator.of(context).pop();
@@ -223,7 +197,7 @@ class _StoreSelectorCardState extends State<StoreSelectorCard> {
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  _showStorePopup(); // перезапуск с пустыми полями
+                  _showStorePopup();
                 },
                 child: const Text("Создать новый магазин"),
               ),

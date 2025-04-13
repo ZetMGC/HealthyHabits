@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/meal.dart';
+import '../models/dish.dart';
 
 class MealCard extends StatelessWidget {
-  final Meal meal;
+  final Dish meal;
   final VoidCallback onTap;
 
   const MealCard({

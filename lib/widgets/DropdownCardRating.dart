@@ -4,7 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'DropdownCardBase.dart';
 
 class DropdownCardRating extends StatefulWidget {
-  const DropdownCardRating({super.key});
+  final Function(int)? onRatingChanged;
+  final Function(String)? onCommentChanged;
+
+  const DropdownCardRating({
+    super.key,
+    this.onRatingChanged,
+    this.onCommentChanged,
+  });
 
   @override
   State<DropdownCardRating> createState() => _DropdownCardRatingState();
@@ -15,6 +22,7 @@ class _DropdownCardRatingState extends State<DropdownCardRating>
   late AnimationController _animationController;
   bool _isExpanded = false;
   int _currentRating = 0;
+  String _currentComment = '';
 
   @override
   void initState() {
@@ -59,6 +67,7 @@ class _DropdownCardRatingState extends State<DropdownCardRating>
               setState(() {
                 _currentRating = index + 1;
                 _saveRating(_currentRating);
+                widget.onRatingChanged?.call(_currentRating);
               });
             },
             child: Padding(
@@ -85,7 +94,27 @@ class _DropdownCardRatingState extends State<DropdownCardRating>
     );
   }
 
-
+  Widget _styledTextField(String hint) {
+    return TextField(
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: Colors.grey.shade100,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding:
+        const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      ),
+      onChanged: (value) {
+        setState(() {
+          _currentComment = value;
+          widget.onCommentChanged?.call(value);
+        });
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,27 +136,9 @@ class _DropdownCardRatingState extends State<DropdownCardRating>
     );
   }
 
-
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
   }
-
-  Widget _styledTextField(String hint) {
-    return TextField(
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: Colors.grey.shade100,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding:
-        const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-      ),
-    );
-  }
-
 }

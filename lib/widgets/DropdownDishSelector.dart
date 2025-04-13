@@ -2,22 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../widgets/DropdownCardBase.dart';
 import '../data/MockData.dart';
-import '../models/meal.dart';
+// import '../models/meal.dart';
+import '../models/dish.dart';
 
-class MealDropdownCard extends StatefulWidget {
-  final Function(Meal) onMealSelected;
+class DishDropdownCard extends StatefulWidget {
+  final Function(Dish) onMealSelected;
 
-  const MealDropdownCard({super.key, required this.onMealSelected});
+  const DishDropdownCard({super.key, required this.onMealSelected});
 
   @override
-  State<MealDropdownCard> createState() => _MealDropdownCardState();
+  State<DishDropdownCard> createState() => _DishDropdownCardState();
 }
 
-class _MealDropdownCardState extends State<MealDropdownCard>
+class _DishDropdownCardState extends State<DishDropdownCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool isExpanded = false;
-  Meal? selectedMeal;
+  Dish? selectedMeal;
   String searchQuery = '';
 
   @override
@@ -42,9 +43,9 @@ class _MealDropdownCardState extends State<MealDropdownCard>
 
   @override
   Widget build(BuildContext context) {
-    List<Meal> filteredMeals = mockMeals
-        .where((meal) =>
-        meal.title.toLowerCase().contains(searchQuery.toLowerCase()))
+    List<Dish> filteredMeals = mockMeals
+        .where((dish) =>
+        dish.name.toLowerCase().contains(searchQuery.toLowerCase()))
         .toList();
 
     return DropdownCardBase(
@@ -59,7 +60,7 @@ class _MealDropdownCardState extends State<MealDropdownCard>
       ),
       title: "Название блюда",
       subtitle: Text(
-        selectedMeal?.title ?? "Выберите блюдо",
+        selectedMeal?.name ?? "Выберите блюдо",
         style: const TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 16,
@@ -94,7 +95,7 @@ class _MealDropdownCardState extends State<MealDropdownCard>
                 itemBuilder: (context, index) {
                   final meal = filteredMeals[index];
                   return ListTile(
-                    title: Text(meal.title),
+                    title: Text(meal.name),
                     subtitle: Text('${meal.calories} ккал'),
                     onTap: () {
                       setState(() {

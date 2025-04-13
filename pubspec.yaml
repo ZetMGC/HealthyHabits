@@ -38,6 +38,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_svg: ^2.0.17
   intl: ^0.20.2
+  shared_preferences_debugger: ^0.1.0
 
 dev_dependencies:
   flutter_test:
@@ -70,6 +71,7 @@ flutter:
     - assets/icons/notification.svg
     - assets/icons/active_profile.svg
     - assets/images/bg.png
+    - assets/data/dishes.json
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
