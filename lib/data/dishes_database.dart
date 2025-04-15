@@ -1,11 +1,19 @@
-import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:healthyhabits/models/dish.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/dish.dart';
 
 class DishesDatabase {
-  static Future<List<Dish>> loadDishes() async {
-    final data = await rootBundle.loadString('assets/data/dishes.json');
-    final List<dynamic> jsonList = json.decode(data);
-    return jsonList.map((json) => Dish.fromJson(json)).toList();
+  static Future<List<Dish>> getAllDishes() async {
+    final snapshot = await FirebaseFirestore.instance.collection('dishes').get();
+
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      return Dish(
+        id: data['id'],
+        name: data['name'],
+        description: data['description'],
+        ingredients: List<String>.from(data['ingredients']),
+        calories: data['calories'],
+      );
+    }).toList();
   }
 }

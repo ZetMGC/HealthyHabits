@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:healthyhabits/models/dish.dart';
-import 'package:healthyhabits/models/meal_entry.dart';
-import 'package:healthyhabits/data/dishes_database.dart';
-import 'package:healthyhabits/data/meal_entries_database.dart';
+import 'package:healthyhabits/models/store.dart';
+
 import '../widgets/DropdownDatepicker.dart';
 import '../widgets/DropdownCardRating.dart';
 import '../widgets/AppBar.dart';
 import '../widgets/MealDescriptionCard.dart';
 import '../widgets/StoreSelectionCard.dart';
 import '../widgets/DropdownDishSelector.dart';
-import 'package:healthyhabits/models/store.dart';
 
 class FoodIntakeScreen extends StatefulWidget {
   const FoodIntakeScreen({super.key});
@@ -29,21 +28,42 @@ class _FoodIntakeScreenState extends State<FoodIntakeScreen> {
   void _addMealEntry() async {
     if (selectedDish == null) return;
 
-    final newEntry = MealEntry(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      date: selectedDate,
-      mealType: selectedMealType,
-      dishId: selectedDish!.id,
-      place: comment,
-      store: selectedStore,
-      rating: selectedRating,
-    );
+    final entryData = {
+      'date': selectedDate.toIso8601String(),
+      'mealType': selectedMealType,
+      'dishId': selectedDish!.id,
+      'place': comment,
+      'store': selectedStore != null
+          ? {
+        'name': selectedStore!.name,
+        'address': selectedStore!.address,
+        'type': selectedStore!.type,
+      }
+          : null,
+      'rating': selectedRating,
+    };
 
-    await MealEntriesDatabase.saveEntry(newEntry);
+    print('rating: $selectedRating'); // ✅ для отладки
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Прием пищи добавлен')),
-    );
+    try {
+      await FirebaseFirestore.instance.collection('meal_entries').add(entryData);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Прием пищи сохранён в Firebase')),
+      );
+
+      // Очистить поля после сохранения
+      setState(() {
+        selectedDish = null;
+        selectedRating = 0;
+        comment = '';
+        selectedStore = null;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка при сохранении: $e')),
+      );
+    }
   }
 
   @override
@@ -88,11 +108,12 @@ class _FoodIntakeScreenState extends State<FoodIntakeScreen> {
                   description: selectedDish!.description,
                   ingredients: selectedDish!.ingredients,
                 ),
-              if(selectedDish == null)
-                const SizedBox(height: 12),
+              if (selectedDish == null) const SizedBox(height: 12),
               Center(
                 child: DropdownCardRating(
-                  onRatingChanged: (val) => setState(() => selectedRating = val),
+                  onRatingChanged: (val) {
+                    selectedRating = val; // ✅ фикс: без setState
+                  },
                   onCommentChanged: (val) => comment = val,
                 ),
               ),

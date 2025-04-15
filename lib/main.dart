@@ -4,15 +4,24 @@ import 'screens/screens.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:firebase_core/firebase_core.dart';
+
+// import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Инициализация Firebase
+  await Firebase.initializeApp();
+
+  // Остальная инициализация
   final prefs = await SharedPreferences.getInstance();
   final isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
   await initializeDateFormatting('ru_RU', null); // или 'en_US', если нужно
 
   runApp(MyApp(isFirstLaunch: isFirstLaunch));
 }
+
 
 class MyApp extends StatelessWidget {
   final bool isFirstLaunch;

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../widgets/DropdownCardBase.dart';
-import '../data/MockData.dart';
-// import '../models/meal.dart';
+import '../data/dishes_database.dart';
 import '../models/dish.dart';
 
 class DishDropdownCard extends StatefulWidget {
@@ -20,6 +19,7 @@ class _DishDropdownCardState extends State<DishDropdownCard>
   bool isExpanded = false;
   Dish? selectedMeal;
   String searchQuery = '';
+  late Future<List<Dish>> dishesFuture;
 
   @override
   void initState() {
@@ -28,6 +28,7 @@ class _DishDropdownCardState extends State<DishDropdownCard>
       vsync: this,
       duration: const Duration(milliseconds: 200),
     );
+    dishesFuture = DishesDatabase.getAllDishes(); // 👈 Загрузка из Firebase
   }
 
   void toggleExpand() {
@@ -43,11 +44,6 @@ class _DishDropdownCardState extends State<DishDropdownCard>
 
   @override
   Widget build(BuildContext context) {
-    List<Dish> filteredMeals = mockMeals
-        .where((dish) =>
-        dish.name.toLowerCase().contains(searchQuery.toLowerCase()))
-        .toList();
-
     return DropdownCardBase(
       icon: SvgPicture.asset(
         'assets/icons/food.svg',
@@ -67,50 +63,65 @@ class _DishDropdownCardState extends State<DishDropdownCard>
           color: Colors.black,
         ),
       ),
-      expandedChild: Column(
-        children: [
-          TextField(
-            decoration: const InputDecoration(
-              hintText: 'Поиск...',
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(8)),
-              ),
-            ),
-            onChanged: (value) {
-              setState(() {
-                searchQuery = value;
-              });
-            },
-          ),
-          const SizedBox(height: 12),
-          ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxHeight: 200, // Максимальная высота
-            ),
-            child: Scrollbar(
-              thumbVisibility: true,
-              child: ListView.builder(
-                itemCount: filteredMeals.length,
-                itemBuilder: (context, index) {
-                  final meal = filteredMeals[index];
-                  return ListTile(
-                    title: Text(meal.name),
-                    subtitle: Text('${meal.calories} ккал'),
-                    onTap: () {
-                      setState(() {
-                        selectedMeal = meal;
-                        widget.onMealSelected(meal);
-                        toggleExpand();
-                        searchQuery = '';
-                      });
-                    },
-                  );
+      expandedChild: FutureBuilder<List<Dish>>(
+        future: dishesFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text("Нет доступных блюд"));
+          }
+
+          List<Dish> filteredMeals = snapshot.data!
+              .where((dish) =>
+              dish.name.toLowerCase().contains(searchQuery.toLowerCase()))
+              .toList();
+
+          return Column(
+            children: [
+              TextField(
+                decoration: const InputDecoration(
+                  hintText: 'Поиск...',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(8)),
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    searchQuery = value;
+                  });
                 },
               ),
-            ),
-          ),
-        ],
+              const SizedBox(height: 12),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 200),
+                child: Scrollbar(
+                  thumbVisibility: true,
+                  child: ListView.builder(
+                    itemCount: filteredMeals.length,
+                    itemBuilder: (context, index) {
+                      final meal = filteredMeals[index];
+                      return ListTile(
+                        title: Text(meal.name),
+                        subtitle: Text('${meal.calories} ккал'),
+                        onTap: () {
+                          setState(() {
+                            selectedMeal = meal;
+                            widget.onMealSelected(meal);
+                            toggleExpand();
+                            searchQuery = '';
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
       animationController: _controller,
       onTap: toggleExpand,
