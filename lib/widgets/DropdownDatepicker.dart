@@ -7,7 +7,6 @@ class DropdownCardDatepicker extends StatefulWidget {
   final DateTime? initialDate;
   final bool initiallyExpanded;
 
-  /// Новый параметр: вызывается при изменении типа приёма пищи или даты
   final void Function(String type, DateTime date)? onChanged;
 
   const DropdownCardDatepicker({
