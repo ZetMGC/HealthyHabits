@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "761398251428",
+    "project_id": "healthyhabits-d189b",
+    "storage_bucket": "healthyhabits-d189b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:761398251428:android:1ff35159c2f74cc594bb31",
+        "android_client_info": {
+          "package_name": "com.example.healthyhabits.healthyhabits"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD73uncYJZtlslZLkAY7K54OAsQeJkW-AM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

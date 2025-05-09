@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:healthyhabits/models/meal.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:healthyhabits/models/dish.dart';
+import 'package:healthyhabits/models/store.dart';
+
 import '../widgets/DropdownDatepicker.dart';
 import '../widgets/DropdownCardRating.dart';
 import '../widgets/AppBar.dart';
 import '../widgets/MealDescriptionCard.dart';
 import '../widgets/StoreSelectionCard.dart';
-import '../widgets/DropdownMealType.dart';
-import '../data/MockData.dart';
+import '../widgets/DropdownDishSelector.dart';
 
 class FoodIntakeScreen extends StatefulWidget {
   const FoodIntakeScreen({super.key});
@@ -16,12 +18,52 @@ class FoodIntakeScreen extends StatefulWidget {
 }
 
 class _FoodIntakeScreenState extends State<FoodIntakeScreen> {
-  Meal? selectedMeal;
+  Dish? selectedDish;
+  DateTime selectedDate = DateTime.now();
+  String selectedMealType = "Завтрак";
+  int selectedRating = 0;
+  String comment = '';
+  Store? selectedStore;
 
-  @override
-  void initState() {
-    super.initState();
-    selectedMeal = mockMeals.first; // по умолчанию первое блюдо
+  void _addMealEntry() async {
+    if (selectedDish == null) return;
+
+    final entryData = {
+      'date': selectedDate.toIso8601String(),
+      'mealType': selectedMealType,
+      'dishId': selectedDish!.id,
+      'place': comment,
+      'store': selectedStore != null
+          ? {
+        'name': selectedStore!.name,
+        'address': selectedStore!.address,
+        'type': selectedStore!.type,
+      }
+          : null,
+      'rating': selectedRating,
+    };
+
+    print('rating: $selectedRating'); // ✅ для отладки
+
+    try {
+      await FirebaseFirestore.instance.collection('meal_entries').add(entryData);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Прием пищи сохранён в Firebase')),
+      );
+
+      // Очистить поля после сохранения
+      setState(() {
+        selectedDish = null;
+        selectedRating = 0;
+        comment = '';
+        selectedStore = null;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка при сохранении: $e')),
+      );
+    }
   }
 
   @override
@@ -43,29 +85,43 @@ class _FoodIntakeScreenState extends State<FoodIntakeScreen> {
               const SizedBox(height: 35),
               Center(
                 child: DropdownCardDatepicker(
-                  initialTitle: "Завтрак",
-                  initialDate: DateTime(2024, 3, 29),
+                  initialTitle: selectedMealType,
+                  initialDate: selectedDate,
+                  onChanged: (type, date) {
+                    setState(() {
+                      selectedMealType = type;
+                      selectedDate = date;
+                    });
+                  },
                 ),
               ),
               const SizedBox(height: 12),
-              MealDropdownCard(
-                onMealSelected: (Meal meal) {
+              DishDropdownCard(
+                onMealSelected: (Dish dish) {
                   setState(() {
-                    selectedMeal = meal;
+                    selectedDish = dish;
                   });
                 },
               ),
-              if (selectedMeal != null)
+              if (selectedDish != null)
                 MealDescriptionCard(
-                  description: selectedMeal!.description,
-                  ingredients: selectedMeal!.ingredients,
+                  description: selectedDish!.description,
+                  ingredients: selectedDish!.ingredients,
                 ),
+              if (selectedDish == null) const SizedBox(height: 12),
               Center(
-                child: DropdownCardRating(),
+                child: DropdownCardRating(
+                  onRatingChanged: (val) {
+                    selectedRating = val; // ✅ фикс: без setState
+                  },
+                  onCommentChanged: (val) => comment = val,
+                ),
               ),
               const SizedBox(height: 12),
               Center(
-                child: StoreSelectorCard(),
+                child: StoreSelectorCard(
+                  onStoreChanged: (store) => setState(() => selectedStore = store),
+                ),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
@@ -76,9 +132,7 @@ class _FoodIntakeScreenState extends State<FoodIntakeScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: () {
-                  print("Добавлено блюдо: ${selectedMeal?.title}");
-                },
+                onPressed: _addMealEntry,
                 child: const Text(
                   "Добавить",
                   style: TextStyle(
