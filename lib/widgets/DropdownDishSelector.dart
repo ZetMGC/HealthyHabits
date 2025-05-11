@@ -88,7 +88,7 @@ class _DishDropdownCardState extends State<DishDropdownCard>
     _controller.dispose();
     _scrollController.dispose();
     _animationController.dispose();
-    super.dispose();
+    super.dispose();                                                  
   }
 
   @override
@@ -179,10 +179,10 @@ class _DishDropdownCardState extends State<DishDropdownCard>
                   SizedBox(
                     height: 200,
                     child: Scrollbar(
-                      controller: _scrollController,
+                      controller: _scrollController, // Убедись, что scrollController передается правильно
                       thumbVisibility: true,
                       child: ListView.builder(
-                        controller: _scrollController,
+                        controller: _scrollController, // Прокрутка также должна использовать этот же контроллер
                         itemCount: filteredMeals.length,
                         itemBuilder: (context, index) {
                           final meal = filteredMeals[index];

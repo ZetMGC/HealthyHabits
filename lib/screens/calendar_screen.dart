@@ -1,90 +1,197 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:intl/date_symbol_data_local.dart';
 
-// import '../data/MockData.dart';
-// import '../models/meal.dart';
-// import '../widgets/DateSelector.dart';
-// import '../widgets/FilterButtons.dart';
-// import '../widgets/MealCard.dart';
-//
-class MealPlanScreen extends StatefulWidget {
-  const MealPlanScreen({super.key});
+import '../widgets/HorizontalDatePicker.dart';
+import '../widgets/AppBar.dart';
+
+class FoodEntriesScreen extends StatefulWidget {
+  const FoodEntriesScreen({super.key});
 
   @override
-  State<MealPlanScreen> createState() => _MealPlanScreenState();
+  State<FoodEntriesScreen> createState() => _FoodEntriesScreenState();
 }
-class _MealPlanScreenState extends State<MealPlanScreen> {
-  DateTime selectedDate = DateTime(2025, 5, 25);
-  String selectedType = "Все";
 
-  @override
-  void initState() {
-    super.initState();
-    initializeDateFormatting('ru_RU', null);
+class _FoodEntriesScreenState extends State<FoodEntriesScreen> {
+  DateTime selectedDate = DateTime.now();
+  String selectedMealType = 'Все';
+
+  final List<String> mealTypes = ['Все', 'Завтрак', 'Обед', 'Ужин', 'Перекус'];
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getMealEntriesStream() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const Stream.empty();
+
+    final startOfDay = Timestamp.fromDate(DateTime(selectedDate.year, selectedDate.month, selectedDate.day).toUtc());
+    final endOfDay = Timestamp.fromDate(DateTime(selectedDate.year, selectedDate.month, selectedDate.day).add(const Duration(days: 1)).toUtc());
+
+    print("Start of day: $startOfDay, End of day: $endOfDay"); // Добавьте логи
+
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+        .collection('meal_entries')
+        .where('userId', isEqualTo: user.uid)
+        .where('date', isGreaterThanOrEqualTo: startOfDay)
+        .where('date', isLessThan: endOfDay);
+
+    if (selectedMealType != 'Все') {
+      query = query.where('mealType', isEqualTo: selectedMealType);
+    }
+
+    return query.orderBy('date').snapshots();
   }
-//
-//   List<DateTime> get allDates {
-//     return mockMeals.map((meal) => meal.date).toSet().toList()..sort();
-//   }
-//
-//   List<String> get types {
-//     return ["Все", ...{for (var m in mockMeals) m.type}];
-//   }
-//
-//   List<Dish> get filteredMeals {
-//     return mockMeals.where((meal) {
-//       final matchDate = meal.date == selectedDate;
-//       final matchType = selectedType == "Все" || meal.type == selectedType;
-//       return matchDate && matchType;
-//     }).toList();
-//   }
+
+  Future<Map<String, dynamic>?> getDishById(String dishId) async {
+    print("Fetching dish with ID: $dishId"); // Логирование ID
+    final doc = await FirebaseFirestore.instance.collection('dishes').doc(dishId).get();
+    if (doc.exists) {
+      print("Dish found: ${doc.data()}");
+    } else {
+      print("Dish not found");
+    }
+    return doc.exists ? doc.data() : null;
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Мой план питания"),
-        centerTitle: true,
-        leading: const Icon(Icons.arrow_back),
-        actions: const [Icon(Icons.notifications)],
-      ),
+      appBar: CustomAppBar(
+          title: "Добавить прием пищи",
+          showBackButton: false,
+        ),
       body: Column(
-        // crossAxisAlignment: CrossAxisAlignment.start,
-        // children: [
-        //   DateSelector(
-        //     dates: allDates,
-        //     selectedDate: selectedDate,
-        //     onDateSelected: (date) {
-        //       setState(() => selectedDate = date);
-        //     },
-        //   ),
-        //   const SizedBox(height: 8),
-        //   FilterButtons(
-        //     filters: types,
-        //     selected: selectedType,
-        //     onChanged: (type) {
-        //       setState(() => selectedType = type);
-        //     },
-        //   ),
-        //   const SizedBox(height: 12),
-        //   Expanded(
-        //     child: filteredMeals.isEmpty
-        //         ? const Center(child: Text("Нет данных на выбранную дату"))
-        //         : ListView.builder(
-        //       itemCount: filteredMeals.length,
-        //       itemBuilder: (context, index) {
-        //         final meal = filteredMeals[index];
-        //         return MealCard(
-        //           meal: meal,
-        //           onTap: () {
-        //             Navigator.pushNamed(context, '/edit', arguments: meal);
-        //           },
-        //         );
-        //       },
-        //     ),
-        //   ),
-        // ],
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 35),
+          HorizontalDatePicker(
+            initialDate: selectedDate,
+            onDateSelected: (date) {
+              setState(() => selectedDate = date);
+            },
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 40, // фиксированная высота под чипы
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: mealTypes.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final type = mealTypes[index];
+                final isSelected = type == selectedMealType;
+                return ChoiceChip(
+                  label: Text(type),
+                  selected: isSelected,
+                  onSelected: (_) => setState(() => selectedMealType = type),
+                  selectedColor: const Color(0xFFE14E31),
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>( 
+              stream: getMealEntriesStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text('Нет приёмов пищи на этот день.'));
+                }
+
+                final meals = snapshot.data!.docs;
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: meals.length,
+                  itemBuilder: (context, index) {
+                    final mealData = meals[index].data();
+                    final mealTime = DateFormat('yyyy-MM-dd HH:mm:ss').format(mealData['date'].toDate());
+                    final mealType = mealData['mealType'];
+                    final dishId = mealData['dishId'];
+
+                    return FutureBuilder<Map<String, dynamic>?>( 
+                      future: getDishById(dishId),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const SizedBox(); // Заглушка
+                        }
+
+                        final dish = snapshot.data!;
+                        final dishName = dish['name'] ?? 'Без названия';
+                        final calories = dish['calories']?.toString() ?? '–';
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              )
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Блюдо на $mealType",
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                dishName,
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  const Icon(Icons.access_time, size: 16, color: Colors.purple),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    mealTime,
+                                    style: const TextStyle(color: Colors.purple),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    "$calories ккал",
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

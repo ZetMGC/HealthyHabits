@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DropdownCardDatepicker extends StatefulWidget {
   final String initialTitle;
   final DateTime? initialDate;
   final bool initiallyExpanded;
-
-  final void Function(String type, DateTime date)? onChanged;
+  final void Function(String type, Timestamp date)? onChanged;
 
   const DropdownCardDatepicker({
     super.key,
@@ -50,8 +50,17 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
       _animationController.value = 1.0;
     }
 
-    _selectedMealType = widget.initialTitle;
+    _selectedMealType = mealTypes.contains(widget.initialTitle)
+        ? widget.initialTitle
+        : mealTypes.first;
     _selectedDate = widget.initialDate;
+
+    // Инициируем onChanged при инициализации, если дата уже задана
+    if (widget.onChanged != null && _selectedDate != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onChanged!(_selectedMealType, Timestamp.fromDate(_selectedDate!));
+      });
+    }
   }
 
   void _toggleExpansion() {
@@ -66,7 +75,7 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
   }
 
   Future<void> _pickDate(BuildContext context) async {
-    DateTime now = DateTime.now();
+    final DateTime now = DateTime.now();
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? now,
@@ -77,10 +86,10 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
-        if (widget.onChanged != null) {
-          widget.onChanged!(_selectedMealType, _selectedDate!);
-        }
       });
+      if (widget.onChanged != null) {
+        widget.onChanged!(_selectedMealType, Timestamp.fromDate(picked));
+      }
     }
   }
 
@@ -133,8 +142,10 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
                   'assets/icons/downarrow.svg',
                   width: 14,
                   height: 14,
-                  colorFilter:
-                  const ColorFilter.mode(Colors.black54, BlendMode.srcIn),
+                  colorFilter: const ColorFilter.mode(
+                    Colors.black54,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
             ),
@@ -146,7 +157,7 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
           child: Center(
             child: Container(
               width: 350,
-              margin: const EdgeInsets.only(top: 8, bottom: 8),
+              margin: const EdgeInsets.symmetric(vertical: 8),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -185,7 +196,7 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
           borderSide: BorderSide.none,
         ),
         contentPadding:
-        const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       ),
       items: mealTypes
           .map((type) => DropdownMenuItem(value: type, child: Text(type)))
@@ -194,10 +205,12 @@ class _DropdownCardDatepickerState extends State<DropdownCardDatepicker>
         if (value != null) {
           setState(() {
             _selectedMealType = value;
-            if (widget.onChanged != null && _selectedDate != null) {
-              widget.onChanged!(_selectedMealType, _selectedDate!);
-            }
           });
+         if (widget.onChanged != null && _selectedDate != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              widget.onChanged!(_selectedMealType, Timestamp.fromDate(_selectedDate!));
+            });
+          }
         }
       },
     );

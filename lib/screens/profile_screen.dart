@@ -1,9 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:shared_preferences_debugger/shared_preferences_debugger.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-import 'welcome_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import '../widgets/AppBar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,81 +14,134 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _nameController = TextEditingController();
-  bool _isSaving = false;
+  User? user = FirebaseAuth.instance.currentUser;
+  String? avatarUrl;
+  bool loadingAvatar = false;
 
-  Future<void> _resetApp(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-          (route) => false,
+  Future<void> signInWithGoogle() async {
+    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+    if (googleUser == null) return;
+
+    final googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
     );
-  }
-
-  Future<void> _saveNameToFirestore() async {
-    final name = _nameController.text.trim();
-    if (name.isEmpty) return;
-
-    setState(() => _isSaving = true);
 
     try {
-      await FirebaseFirestore.instance.collection('users').add({
-        'name': name,
-        'createdAt': Timestamp.now(),
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      setState(() {
+        user = userCredential.user;
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Имя сохранено в Firestore')),
-      );
-      _nameController.clear();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка: $e')),
+        SnackBar(content: Text("Ошибка входа: $e")),
       );
-    } finally {
-      setState(() => _isSaving = false);
     }
+  }
+
+  Future<void> pickAndUploadAvatar() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked == null || user == null) return;
+
+    setState(() => loadingAvatar = true);
+
+    final file = File(picked.path);
+    final ref = FirebaseStorage.instance.ref().child('avatars/${user!.uid}.jpg');
+    await ref.putFile(file);
+    final url = await ref.getDownloadURL();
+
+    setState(() {
+      avatarUrl = url;
+      loadingAvatar = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (user == null) {
+      return Scaffold(
+        appBar: CustomAppBar(title: "Профиль", showBackButton: false),
+        body: Center(
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.login),
+            label: const Text('Войти через Google'),
+            onPressed: signInWithGoogle,
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFE14E31), fixedSize: const Size(350, 50), shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
+           ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Настройки")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+
+      appBar: CustomAppBar(title: "Профиль", showBackButton: false),
+      body: Center(
+        child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         child: Column(
           children: [
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Введите имя',
-                border: OutlineInputBorder(),
+            GestureDetector(
+              onTap: pickAndUploadAvatar,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 55,
+                    backgroundColor: Colors.grey.shade200,
+                    backgroundImage: avatarUrl != null
+                        ? NetworkImage(avatarUrl!)
+                        : (user!.photoURL != null
+                            ? NetworkImage(user!.photoURL!)
+                            : null),
+                    child: avatarUrl == null && user!.photoURL == null
+                        ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                        : null,
+                  ),
+                  if (loadingAvatar)
+                    const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.redAccent),
+                    ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: _isSaving ? null : _saveNameToFirestore,
-              child: _isSaving
-                  ? const CircularProgressIndicator()
-                  : const Text('Сохранить имя'),
+            const SizedBox(height: 16),
+            Text(
+              user!.displayName ?? "Имя не указано",
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => _resetApp(context),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text(
-                "Сбросить приложение",
-                style: TextStyle(color: Colors.white),
-              ),
+            Text(
+              user!.email ?? "",
+              style: const TextStyle(color: Colors.grey),
             ),
-            const SizedBox(height: 20),
-            const Expanded(
-              child: SharedPreferencesDebugPage(),
-            ),
+            const SizedBox(height: 30),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                setState(() {
+                  user = null;
+                  avatarUrl = null;
+                });
+              },
+              icon: const Icon(Icons.logout, color: Colors.white,),
+              label: const Text(
+                  "Выйти",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
+              style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFE14E31), fixedSize: const Size(280, 50), shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                    ),
+            )
           ],
         ),
+      ),
       ),
     );
   }

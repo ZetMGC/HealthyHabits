@@ -12,7 +12,28 @@
           "package_name": "com.example.healthyhabits.healthyhabits"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "761398251428-6ibijatdj9cuad9jb78qulqrb2oleuet.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.healthyhabits.healthyhabits",
+            "certificate_hash": "f91be6b948cf12df3409d9a8756f144d30b5208f"
+          }
+        },
+        {
+          "client_id": "761398251428-pc5qpikjp6cultv612d74rqtku7l30i2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.healthyhabits.healthyhabits",
+            "certificate_hash": "075ece6d29a8ddbdb6fc3c70b150952ea7081d8e"
+          }
+        },
+        {
+          "client_id": "761398251428-r3bp7j2kb47ku8ru0l03234b7ebbuj07.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD73uncYJZtlslZLkAY7K54OAsQeJkW-AM"
@@ -20,7 +41,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "761398251428-r3bp7j2kb47ku8ru0l03234b7ebbuj07.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

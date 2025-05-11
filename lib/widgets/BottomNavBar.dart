@@ -15,9 +15,9 @@ class CustomBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CurvedNavigationBar(
-      backgroundColor: Colors.transparent, // Делаем фон полностью прозрачным
-      color: Colors.white, // Цвет самой панели
-      buttonBackgroundColor: Colors.red, // Фон за кнопками теперь белый
+      backgroundColor: Colors.transparent, 
+      color: Colors.white, 
+      buttonBackgroundColor: Colors.red,
       height: 75,
       index: currentIndex,
       items: [
