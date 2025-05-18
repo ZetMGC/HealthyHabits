@@ -5,6 +5,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../widgets/AppBar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -138,7 +140,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFE14E31), fixedSize: const Size(280, 50), shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                     ),
-            )
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove('isFirstLaunch'); // или prefs.clear(); чтобы всё
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Кэш очищен')),
+                );
+              },
+              icon: const Icon(Icons.delete_forever, color: Colors.white),
+              label: const Text(
+                "Очистить кэш",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey,
+                fixedSize: const Size(280, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
           ],
         ),
       ),
