@@ -25,7 +25,7 @@ void main() async {
 class MyApp extends StatelessWidget {
   final bool isFirstLaunch;
 
-  const MyApp({super.key, required this.isFirstLaunch});
+  const MyApp({super.key, this.isFirstLaunch = false}); // значение по умолчанию
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +37,7 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -50,7 +51,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
-    const MealPlanScreen(),
+    const FoodEntriesScreen(),
     const FoodIntakeScreen(),
     const ChatScreen(),
     const ProfileScreen(),

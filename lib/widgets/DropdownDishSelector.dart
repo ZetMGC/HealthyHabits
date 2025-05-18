@@ -5,8 +5,13 @@ import '../models/dish.dart';
 
 class DishDropdownCard extends StatefulWidget {
   final Function(Dish) onMealSelected;
+  final String? initialDishId; 
 
-  const DishDropdownCard({super.key, required this.onMealSelected});
+  const DishDropdownCard({
+    super.key,
+    required this.onMealSelected,
+    this.initialDishId, 
+  });
 
   @override
   State<DishDropdownCard> createState() => _DishDropdownCardState();
@@ -30,6 +35,10 @@ class _DishDropdownCardState extends State<DishDropdownCard>
   void initState() {
     super.initState();
     fetchMeals();
+
+    if (widget.initialDishId != null) {
+      loadInitialDish(widget.initialDishId!);
+    }
 
     _animationController = AnimationController(
       vsync: this,
@@ -60,6 +69,32 @@ class _DishDropdownCardState extends State<DishDropdownCard>
       allMeals = meals;
       filteredMeals = meals;
     });
+  }
+
+  Future<void> loadInitialDish(String dishId) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('dishes')
+        .doc(dishId)
+        .get();
+
+    if (doc.exists) {
+      final data = doc.data();
+      if (data != null) {
+        final dish = Dish(
+          id: doc.id,
+          name: data['name'] ?? '',
+          description: data['description'] ?? '',
+          ingredients: List<String>.from(data['ingredients'] ?? []),
+          calories: data['calories'] ?? 0,
+        );
+
+        setState(() {
+          selectedMeal = dish;
+        });
+
+        widget.onMealSelected(dish);
+      }
+    }
   }
 
   void filterMeals(String query) {
