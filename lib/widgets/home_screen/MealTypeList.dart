@@ -2,6 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
+import 'package:healthyhabits/screens/food_edit_screen.dart';
+import 'package:intl/intl.dart';
+
 
 class MealTypeList extends StatefulWidget {
   const MealTypeList({super.key});
@@ -147,7 +150,7 @@ class _MealTypeListState extends State<MealTypeList> {
                       future: FirebaseFirestore.instance
                           .collection('meal_entries')
                           .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(DateTime(now.year, now.month, now.day)))
-                          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(DateTime(now.year, now.month, now.day).add(const Duration(days: 1))))
+                          .where('date', isLessThan: Timestamp.fromDate(DateTime(now.year, now.month, now.day).add(const Duration(days: 1))))
                           .where('mealType', isEqualTo: mealType)
                           .where('userId', isEqualTo: user?.uid)
                           .get(),
@@ -166,6 +169,10 @@ class _MealTypeListState extends State<MealTypeList> {
                           itemBuilder: (context, index) {
                             final data = docs[index].data() as Map<String, dynamic>;
                             final dishId = data['dishId'];
+                            final mealTime = data['date'] != null
+                                ? DateFormat('yyyy-MM-dd HH:mm').format((data['date'] as Timestamp).toDate())
+                                : '–';
+                            final entryMealType = data['mealType'] ?? mealType;
 
                             return FutureBuilder<DocumentSnapshot>(
                               future: FirebaseFirestore.instance.collection('dishes').doc(dishId).get(),
@@ -179,20 +186,69 @@ class _MealTypeListState extends State<MealTypeList> {
                                 }
 
                                 final dishData = dishSnapshot.data?.data() as Map<String, dynamic>?;
-                                final dishTitle = dishData?['name'] ?? 'Без названия';
-                                final dishDescription = dishData?['description'] ?? 'Описание отсутствует';
+                                final dishName = dishData?['name'] ?? 'Без названия';
+                                final calories = dishData?['calories']?.toString() ?? '–';
 
-                                return Card(
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  child: ListTile(
-                                    leading: const Icon(Icons.restaurant),
-                                    title: Text(dishTitle),
-                                    subtitle: Text("$dishDescription, ${data['calories'] ?? 0} ккал"),
-                                    trailing: const Icon(Icons.chevron_right),
-                                    onTap: () {
-                                      // TODO: открыть экран редактирования
-                                    },
+                                return GestureDetector(
+                                  onTap: () {
+                                    final mealEntryId = docs[index].id;
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => FoodEditScreen(mealEntryId: mealEntryId),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.05),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Блюдо на $entryMealType",
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          dishName,
+                                          style: const TextStyle(
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.access_time, size: 16, color: Colors.purple),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              mealTime,
+                                              style: const TextStyle(color: Colors.purple),
+                                            ),
+                                            const Spacer(),
+                                            Text(
+                                              "$calories ккал",
+                                              style: const TextStyle(color: Colors.grey),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 );
                               },

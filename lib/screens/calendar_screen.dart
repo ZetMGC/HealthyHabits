@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:healthyhabits/screens/food_edit_screen.dart';
 
 import '../widgets/HorizontalDatePicker.dart';
 import '../widgets/AppBar.dart';
@@ -117,71 +118,88 @@ class _FoodEntriesScreenState extends State<FoodEntriesScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: meals.length,
                   itemBuilder: (context, index) {
-                    final mealData = meals[index].data();
+                    final mealDoc = meals[index];
+                    final mealData = mealDoc.data();
+                    final mealEntryId = mealDoc.id;  // Ид документа meal_entries
                     final mealTime = DateFormat('yyyy-MM-dd HH:mm:ss').format(mealData['date'].toDate());
                     final mealType = mealData['mealType'];
                     final dishId = mealData['dishId'];
 
-                    return FutureBuilder<Map<String, dynamic>?>( 
+                    return FutureBuilder<Map<String, dynamic>?>(
                       future: getDishById(dishId),
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) {
-                          return const SizedBox(); // Заглушка
+                          return const SizedBox();
                         }
 
                         final dish = snapshot.data!;
                         final dishName = dish['name'] ?? 'Без названия';
                         final calories = dish['calories']?.toString() ?? '–';
 
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              )
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Блюдо на $mealType",
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey,
-                                ),
+                        return InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => FoodEditScreen(mealEntryId: mealEntryId),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                dishName,
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(Icons.access_time, size: 16, color: Colors.purple),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    mealTime,
-                                    style: const TextStyle(color: Colors.purple),
+                            ).then((_) {
+                              // После возврата с экрана редактирования, можно обновить состояние,
+                              // чтобы обновить список, если нужно
+                              setState(() {});
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                )
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Блюдо на $mealType",
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey,
                                   ),
-                                  const Spacer(),
-                                  Text(
-                                    "$calories ккал",
-                                    style: const TextStyle(color: Colors.grey),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  dishName,
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                ],
-                              ),
-                            ],
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.access_time, size: 16, color: Colors.purple),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      mealTime,
+                                      style: const TextStyle(color: Colors.purple),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      "$calories ккал",
+                                      style: const TextStyle(color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },

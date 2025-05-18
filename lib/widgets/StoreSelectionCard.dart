@@ -5,21 +5,40 @@ import 'package:healthyhabits/models/store.dart';
 
 class StoreSelectorCard extends StatefulWidget {
   final Function(Store?) onStoreChanged;
+  final Store? initialStore; 
 
-  const StoreSelectorCard({super.key, required this.onStoreChanged});
+  const StoreSelectorCard({
+    super.key,
+    required this.onStoreChanged,
+    this.initialStore, 
+  });
 
   @override
   State<StoreSelectorCard> createState() => _StoreSelectorCardState();
 }
 
+
 class _StoreSelectorCardState extends State<StoreSelectorCard> {
   List<Store> _stores = [];
   Store? _selectedStore;
 
+  final _nameController = TextEditingController();
+  final _addressController = TextEditingController();
+  String _type = 'Магазин';
+
   @override
   void initState() {
     super.initState();
+    _selectedStore = widget.initialStore;
     _loadStores();
+  }
+
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _addressController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadStores() async {
@@ -41,10 +60,11 @@ class _StoreSelectorCardState extends State<StoreSelectorCard> {
   }
 
   void _showStorePopup({Store? storeToEdit}) {
-    bool isEditing = storeToEdit != null;
-    String name = storeToEdit?.name ?? '';
-    String address = storeToEdit?.address ?? '';
-    String type = storeToEdit?.type ?? 'Магазин';
+    final isEditing = storeToEdit != null;
+
+    _nameController.text = storeToEdit?.name ?? '';
+    _addressController.text = storeToEdit?.address ?? '';
+    _type = storeToEdit?.type ?? 'Магазин';
 
     showModalBottomSheet(
       context: context,
@@ -85,9 +105,9 @@ class _StoreSelectorCardState extends State<StoreSelectorCard> {
                 onChanged: (store) {
                   if (store != null) {
                     setModalState(() {
-                      name = store.name;
-                      address = store.address;
-                      type = store.type;
+                      _nameController.text = store.name;
+                      _addressController.text = store.address;
+                      _type = store.type;
                     });
                     setState(() {
                       _selectedStore = store;
@@ -98,29 +118,27 @@ class _StoreSelectorCardState extends State<StoreSelectorCard> {
               ),
               const SizedBox(height: 12),
               TextField(
-                controller: TextEditingController(text: name),
+                controller: _nameController,
                 decoration: InputDecoration(
                   labelText: "Название магазина",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onChanged: (value) => name = value,
               ),
               const SizedBox(height: 12),
               TextField(
-                controller: TextEditingController(text: address),
+                controller: _addressController,
                 decoration: InputDecoration(
                   labelText: "Адрес",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onChanged: (value) => address = value,
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: type,
+                value: _type,
                 decoration: InputDecoration(
                   labelText: "Тип",
                   border: OutlineInputBorder(
@@ -129,11 +147,11 @@ class _StoreSelectorCardState extends State<StoreSelectorCard> {
                 ),
                 items: ["Магазин", "Супермаркет", "Мини-маркет"]
                     .map((t) => DropdownMenuItem(
-                  value: t,
-                  child: Text(t),
-                ))
+                          value: t,
+                          child: Text(t),
+                        ))
                     .toList(),
-                onChanged: (val) => setModalState(() => type = val ?? type),
+                onChanged: (val) => setModalState(() => _type = val ?? _type),
               ),
               const SizedBox(height: 20),
               Row(
@@ -150,15 +168,13 @@ class _StoreSelectorCardState extends State<StoreSelectorCard> {
                         onPressed: () {
                           setState(() {
                             _stores.remove(storeToEdit);
-                            _selectedStore =
-                            _stores.isNotEmpty ? _stores.first : null;
+                            _selectedStore = _stores.isNotEmpty ? _stores.first : null;
                             widget.onStoreChanged(_selectedStore);
                           });
                           _saveStores();
                           Navigator.of(context).pop();
                         },
-                        child: const Text("Удалить",
-                            style: TextStyle(color: Colors.red)),
+                        child: const Text("Удалить", style: TextStyle(color: Colors.red)),
                       ),
                     ),
                   if (isEditing) const SizedBox(width: 12),
@@ -171,9 +187,10 @@ class _StoreSelectorCardState extends State<StoreSelectorCard> {
                         ),
                       ),
                       onPressed: () {
+                        final name = _nameController.text.trim();
+                        final address = _addressController.text.trim();
                         if (name.isNotEmpty && address.isNotEmpty) {
-                          final newStore =
-                          Store(name: name, address: address, type: type);
+                          final newStore = Store(name: name, address: address, type: _type);
                           setState(() {
                             if (isEditing) {
                               final index = _stores.indexOf(storeToEdit!);
@@ -239,7 +256,9 @@ class _StoreSelectorCardState extends State<StoreSelectorCard> {
                 Text(
                   _selectedStore?.name ?? "Нет магазина",
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold, color: Colors.teal),
+                    fontWeight: FontWeight.bold,
+                    color: Colors.teal,
+                  ),
                 ),
                 Text(
                   _selectedStore?.type ?? "",
@@ -253,7 +272,8 @@ class _StoreSelectorCardState extends State<StoreSelectorCard> {
               backgroundColor: Colors.red.withOpacity(0.2),
               elevation: 0,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () => _showStorePopup(storeToEdit: _selectedStore),
             child: const Text(

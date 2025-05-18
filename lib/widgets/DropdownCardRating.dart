@@ -6,11 +6,15 @@ import 'DropdownCardBase.dart';
 class DropdownCardRating extends StatefulWidget {
   final Function(int)? onRatingChanged;
   final Function(String)? onCommentChanged;
+  final int? initialRating;         // ✅ Новый параметр
+  final String? initialComment;     // ✅ Новый параметр
 
   const DropdownCardRating({
     super.key,
     this.onRatingChanged,
     this.onCommentChanged,
+    this.initialRating,
+    this.initialComment,
   });
 
   @override
@@ -31,7 +35,23 @@ class _DropdownCardRatingState extends State<DropdownCardRating>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _loadRating();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    if (widget.initialRating != null) {
+      setState(() {
+        _currentRating = widget.initialRating!;
+      });
+    } else {
+      await _loadRating();
+    }
+
+    if (widget.initialComment != null) {
+      setState(() {
+        _currentComment = widget.initialComment!;
+      });
+    }
   }
 
   void _toggleExpansion() {
@@ -96,6 +116,12 @@ class _DropdownCardRatingState extends State<DropdownCardRating>
 
   Widget _styledTextField(String hint) {
     return TextField(
+      controller: TextEditingController.fromValue(
+        TextEditingValue(
+          text: _currentComment,
+          selection: TextSelection.collapsed(offset: _currentComment.length),
+        ),
+      ),
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
@@ -105,7 +131,7 @@ class _DropdownCardRatingState extends State<DropdownCardRating>
           borderSide: BorderSide.none,
         ),
         contentPadding:
-        const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       ),
       onChanged: (value) {
         setState(() {
