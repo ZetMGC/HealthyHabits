@@ -1,116 +1,130 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../models/dish.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+  const ChatScreen({Key? key}) : super(key: key);
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _caloriesController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _ingredientsController = TextEditingController();
+  final TextEditingController _controller = TextEditingController();
+  final List<Map<String, String>> _messages = [];
 
-  Future<void> _saveDish() async {
-    if (!_formKey.currentState!.validate()) return;
+  bool _isLoading = false;
 
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
-    final name = _nameController.text.trim();
-    final description = _descriptionController.text.trim();
-    final calories = int.tryParse(_caloriesController.text.trim()) ?? 0;
-    final ingredients = _ingredientsController.text
-        .split(',')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
+  Future<void> _sendMessage(String text) async {
+    if (text.trim().isEmpty) return;
 
-    final dish = Dish(
-      id: id,
-      name: name,
-      description: description,
-      ingredients: ingredients,
-      calories: calories,
-    );
-
-    await FirebaseFirestore.instance.collection('dishes').doc(id).set({
-      'id': dish.id,
-      'name': dish.name,
-      'description': dish.description,
-      'ingredients': dish.ingredients,
-      'calories': dish.calories,
+    setState(() {
+      _messages.add({"role": "user", "text": text});
+      _isLoading = true;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Блюдо добавлено в базу')),
-    );
+    try {
+      final response = await http.post(
+       Uri.parse('http://10.0.2.2:5000/meal_plan'), // Заменить при деплое
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'allergies': [],
+          'preferences': [text],
+          'goal': 'сбалансированное питание',
+        }),
+      );
 
-    _formKey.currentState!.reset();
-    _nameController.clear();
-    _caloriesController.clear();
-    _descriptionController.clear();
-    _ingredientsController.clear();
+      final data = jsonDecode(response.body);
+      final String reply = data['plan'] ?? "Не удалось получить ответ";
+
+      setState(() {
+        _messages.add({"role": "bot", "text": reply});
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _messages.add({"role": "bot", "text": "Ошибка: $e"});
+        _isLoading = false;
+      });
+    }
+
+    _controller.clear();
+  }
+
+  Widget _buildMessage(Map<String, String> message) {
+    final isUser = message['role'] == 'user';
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isUser ? Colors.redAccent : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          message['text'] ?? '',
+          style: TextStyle(
+            color: isUser ? Colors.white : Colors.black87,
+            fontSize: 16,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFEFF2FF),
       appBar: AppBar(
-        title: const Text('Добавить блюдо'),
-        backgroundColor: const Color(0xFFE14E31),
-        foregroundColor: Colors.white,
+        title: const Text("Чат АлгУс"),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.black87,
+        elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Название блюда'),
-                validator: (value) => value!.isEmpty ? 'Введите название' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _caloriesController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Калорийность'),
-                validator: (value) => value!.isEmpty ? 'Введите калории' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Описание'),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _ingredientsController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Ингредиенты (через запятую)',
-                ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _saveDish,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE14E31),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text(
-                  'Сохранить блюдо',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              reverse: true,
+              children: _messages.reversed.map(_buildMessage).toList(),
+            ),
           ),
-        ),
+          if (_isLoading) const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: CircularProgressIndicator(),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    decoration: InputDecoration(
+                      hintText: "Написать сообщение...",
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FloatingActionButton(
+                  onPressed: () => _sendMessage(_controller.text),
+                  backgroundColor: Colors.redAccent,
+                  child: const Icon(Icons.send),
+                )
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
